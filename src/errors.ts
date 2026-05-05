@@ -7,6 +7,10 @@ export interface ZazuErrorOptions {
   type?: string | null;
   param?: string | null;
   body?: unknown;
+  // Full response headers from the failed request. Carried so callers
+  // can inspect things the public API surfaces only via headers
+  // (e.g. Zazu-Version, Retry-After, X-RateLimit-*).
+  headers?: Headers | null;
 }
 
 export class ZazuError extends Error {
@@ -15,6 +19,7 @@ export class ZazuError extends Error {
   readonly type: string | null;
   readonly param: string | null;
   readonly body: unknown;
+  readonly headers: Headers | null;
 
   constructor(message: string, options: ZazuErrorOptions = {}) {
     super(message);
@@ -24,6 +29,7 @@ export class ZazuError extends Error {
     this.type = options.type ?? null;
     this.param = options.param ?? null;
     this.body = options.body;
+    this.headers = options.headers ?? null;
   }
 }
 

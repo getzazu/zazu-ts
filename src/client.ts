@@ -172,6 +172,7 @@ function buildError(response: ZazuResponse): ZazuError {
     type: payload.type ?? null,
     param: payload.param ?? null,
     body: response.body,
+    headers: response.headers,
   };
 
   switch (response.status) {
