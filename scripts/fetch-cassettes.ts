@@ -21,9 +21,12 @@ const tarUrl = `https://github.com/${REPO}/releases/download/${tag}/cassettes-${
 
 console.log(`Fetching cassettes from ${tarUrl}`);
 
-const res = await fetch(tarUrl);
+const headers: Record<string, string> = { Accept: "application/octet-stream" };
+if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`;
+
+const res = await fetch(tarUrl, { headers });
 if (!res.ok) {
-  console.error(`Failed: ${res.status} ${res.statusText}`);
+  console.error(`Failed: ${res.status} ${res.statusText} (set GH_TOKEN if zazu-ruby is private)`);
   process.exit(1);
 }
 
@@ -37,10 +40,18 @@ await extractTar({ file: tarPath, cwd: dirname(DEST), strip: 0 });
 console.log(`Cassettes extracted to ${DEST}`);
 
 async function latestTag(): Promise<string> {
-  const r = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
-    headers: { Accept: "application/vnd.github+json" },
+  const ghHeaders: Record<string, string> = { Accept: "application/vnd.github+json" };
+  if (process.env.GH_TOKEN) ghHeaders.Authorization = `Bearer ${process.env.GH_TOKEN}`;
+
+  // /releases/latest skips prereleases and 404s on private repos for
+  // unauthenticated callers — fall back to /releases (most-recent first)
+  // which works in both cases.
+  const r = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=1`, {
+    headers: ghHeaders,
   });
-  if (!r.ok) throw new Error(`Failed to query latest release: ${r.status}`);
-  const json = (await r.json()) as { tag_name: string };
-  return json.tag_name;
+  if (!r.ok) throw new Error(`Failed to query latest release: ${r.status} ${r.statusText}`);
+  const arr = (await r.json()) as Array<{ tag_name: string; draft: boolean }>;
+  const release = arr.find((rel) => !rel.draft);
+  if (!release) throw new Error(`No published releases found for ${REPO}`);
+  return release.tag_name;
 }
