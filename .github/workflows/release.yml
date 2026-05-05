@@ -107,23 +107,29 @@ jobs:
           sha256sum -c getzazu-sdk-*.tgz.sha256
           sha512sum -c getzazu-sdk-*.tgz.sha512
 
+      # Deliberately NOT setting `registry-url`. setup-node's
+      # `registry-url` triggers it to write `_authToken=${NODE_AUTH_TOKEN}`
+      # into ~/.npmrc, which npm then sees as "auth already
+      # configured" and skips the OIDC trusted-publishing exchange —
+      # even when the token is empty. We want OIDC, so we leave
+      # ~/.npmrc untouched and let `npm publish` discover the
+      # GitHub Actions OIDC environment via id-token: write.
       - uses: actions/setup-node@v6
         with:
           node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+
+      # The npm bundled with Node 22 is too old (11.4.x); 11.5.1+ is
+      # required for OIDC trusted publishing.
+      # https://github.com/npm/cli/blob/latest/lib/utils/oidc.js
+      - name: Pin npm to a trusted-publishing-capable version
+        run: |
+          npm install -g npm@latest
+          npm --version
 
       - name: Publish to npm via OIDC trusted publishing
-        env:
-          # `setup-node` writes `_authToken=${NODE_AUTH_TOKEN}` into
-          # .npmrc. Without a token secret it ends up empty and npm
-          # publishes anonymously → 404. Clearing the env var here
-          # makes npm CLI ≥11.5 fall through to OIDC trusted publishing
-          # instead. id-token: write (set on the job) is what lets the
-          # runner mint the OIDC token npm exchanges for a registry key.
-          NODE_AUTH_TOKEN: ""
         run: |
           TARBALL=$(ls getzazu-sdk-*.tgz)
-          npm publish "$TARBALL" --provenance --access public
+          npm publish "$TARBALL" --provenance --access public --registry https://registry.npmjs.org/
 
   upload-release-assets:
     needs: [build, publish-npm]
