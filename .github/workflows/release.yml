@@ -80,7 +80,7 @@ jobs:
           sha256sum "$TARBALL" > "$TARBALL.sha256"
           sha512sum "$TARBALL" > "$TARBALL.sha512"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: package
           path: |
@@ -98,7 +98,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: package
 
@@ -107,12 +107,20 @@ jobs:
           sha256sum -c getzazu-sdk-*.tgz.sha256
           sha512sum -c getzazu-sdk-*.tgz.sha512
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
-      - name: Publish to npm with provenance attestation
+      - name: Publish to npm via OIDC trusted publishing
+        env:
+          # `setup-node` writes `_authToken=${NODE_AUTH_TOKEN}` into
+          # .npmrc. Without a token secret it ends up empty and npm
+          # publishes anonymously → 404. Clearing the env var here
+          # makes npm CLI ≥11.5 fall through to OIDC trusted publishing
+          # instead. id-token: write (set on the job) is what lets the
+          # runner mint the OIDC token npm exchanges for a registry key.
+          NODE_AUTH_TOKEN: ""
         run: |
           TARBALL=$(ls getzazu-sdk-*.tgz)
           npm publish "$TARBALL" --provenance --access public
@@ -124,7 +132,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: package
 
