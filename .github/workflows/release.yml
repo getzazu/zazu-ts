@@ -119,17 +119,18 @@ jobs:
           node-version: "22"
 
       # The npm bundled with Node 22 is too old (11.4.x); 11.5.1+ is
-      # required for OIDC trusted publishing.
+      # required for OIDC trusted publishing. `npm install -g npm@latest`
+      # is unreliable inside an active npm process (mid-run file
+      # replacement, MODULE_NOT_FOUND), so use npx to fetch a known-
+      # good version and run publish through it.
       # https://github.com/npm/cli/blob/latest/lib/utils/oidc.js
-      - name: Pin npm to a trusted-publishing-capable version
-        run: |
-          npm install -g npm@latest
-          npm --version
-
       - name: Publish to npm via OIDC trusted publishing
         run: |
           TARBALL=$(ls getzazu-sdk-*.tgz)
-          npm publish "$TARBALL" --provenance --access public --registry https://registry.npmjs.org/
+          npx --yes npm@latest publish "$TARBALL" \
+            --provenance \
+            --access public \
+            --registry https://registry.npmjs.org/
 
   upload-release-assets:
     needs: [build, publish-npm]
