@@ -8,6 +8,7 @@
 // Cassettes land under test/fixtures/cassettes/.
 
 import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { x as extractTar } from "tar";
@@ -30,7 +31,7 @@ if (!res.ok) {
   process.exit(1);
 }
 
-const tarPath = join(ROOT, "cassettes.tar.gz");
+const tarPath = join(tmpdir(), `zazu-cassettes-${tag}.tar.gz`);
 const buf = new Uint8Array(await res.arrayBuffer());
 await writeFile(tarPath, buf);
 

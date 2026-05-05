@@ -8,3 +8,4 @@ coverage/
 .vscode/
 .idea/
 test/fixtures/cassettes/
+cassettes.tar.gz
