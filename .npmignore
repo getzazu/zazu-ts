@@ -1,0 +1,11 @@
+src/
+test/
+scripts/
+.github/
+.gitignore
+.editorconfig
+tsconfig.json
+eslint.config.js
+.prettierrc.json
+bun.lock
+*.tgz

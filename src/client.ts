@@ -1,0 +1,206 @@
+// Mirrors lib/zazu/client.rb. Runtime-agnostic HTTP entry point that
+// uses the global `fetch` (Node 20+, Bun, Deno, browsers, Workers).
+
+import {
+  ZazuAuthenticationError,
+  ZazuConfigurationError,
+  ZazuConnectionError,
+  type ZazuError,
+  ZazuError as ZazuErrorBase,
+  ZazuForbiddenError,
+  ZazuNotFoundError,
+  ZazuRateLimitError,
+  ZazuServerError,
+  ZazuValidationError,
+} from "./errors.js";
+import { ZazuResponse } from "./response.js";
+import { Accounts } from "./resources/accounts.js";
+import { Customers } from "./resources/customers.js";
+import { Entity } from "./resources/entity.js";
+import { Invoices } from "./resources/invoices.js";
+import { PaymentLinks } from "./resources/payment_links.js";
+import { WebhookEndpoints } from "./resources/webhook_endpoints.js";
+import { VERSION } from "./version.js";
+
+export interface ZazuClientOptions {
+  apiKey?: string | undefined;
+  baseUrl?: string;
+  apiVersion?: string | undefined;
+  timeoutMs?: number;
+  fetch?: typeof fetch;
+}
+
+export interface RequestOptions {
+  params?: Record<string, unknown> | undefined;
+  body?: unknown;
+  headers?: Record<string, string> | undefined;
+}
+
+const DEFAULT_BASE_URL = "https://zazu.ma";
+const DEFAULT_TIMEOUT_MS = 30_000;
+const USER_AGENT = `zazu-ts/${VERSION}`;
+
+export class Zazu {
+  readonly apiKey: string;
+  readonly baseUrl: string;
+  readonly apiVersion: string | null;
+  readonly timeoutMs: number;
+  readonly #fetch: typeof fetch;
+
+  readonly accounts: Accounts;
+  readonly customers: Customers;
+  readonly entity: Entity;
+  readonly invoices: Invoices;
+  readonly paymentLinks: PaymentLinks;
+  readonly webhookEndpoints: WebhookEndpoints;
+
+  constructor(options: ZazuClientOptions = {}) {
+    const apiKey = options.apiKey ?? readEnv("ZAZU_API_KEY");
+    if (!apiKey) {
+      throw new ZazuConfigurationError(
+        "Missing apiKey. Pass apiKey or set ZAZU_API_KEY.",
+      );
+    }
+    this.apiKey = apiKey;
+    this.baseUrl = (options.baseUrl ?? readEnv("ZAZU_BASE_URL") ?? DEFAULT_BASE_URL).replace(
+      /\/+$/,
+      "",
+    );
+    this.apiVersion = options.apiVersion ?? readEnv("ZAZU_API_VERSION") ?? null;
+    this.timeoutMs =
+      options.timeoutMs ?? (Number(readEnv("ZAZU_TIMEOUT_MS")) || DEFAULT_TIMEOUT_MS);
+    this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
+
+    this.accounts = new Accounts(this);
+    this.customers = new Customers(this);
+    this.entity = new Entity(this);
+    this.invoices = new Invoices(this);
+    this.paymentLinks = new PaymentLinks(this);
+    this.webhookEndpoints = new WebhookEndpoints(this);
+  }
+
+  async request<T = unknown>(
+    method: string,
+    path: string,
+    options: RequestOptions = {},
+  ): Promise<ZazuResponse<T>> {
+    const url = this.#buildUrl(path, options.params);
+    const headers = new Headers({
+      Authorization: `Bearer ${this.apiKey}`,
+      "User-Agent": USER_AGENT,
+      Accept: "application/json",
+    });
+    if (this.apiVersion) headers.set("Zazu-Version", this.apiVersion);
+    if (options.headers) {
+      for (const [k, v] of Object.entries(options.headers)) headers.set(k, v);
+    }
+
+    const init: RequestInit = { method: method.toUpperCase(), headers };
+    if (options.body !== undefined && options.body !== null) {
+      headers.set("Content-Type", "application/json");
+      init.body = JSON.stringify(options.body);
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+    init.signal = controller.signal;
+
+    let raw: Response;
+    try {
+      raw = await this.#fetch(url, init);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new ZazuConnectionError(`Request timed out after ${this.timeoutMs}ms`);
+      }
+      throw new ZazuConnectionError(
+        `Connection failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    const body = await parseBody<T>(raw);
+    const response = new ZazuResponse(raw, body);
+    if (response.success) return response;
+    throw buildError(response);
+  }
+
+  #buildUrl(path: string, params?: Record<string, unknown>): string {
+    const trimmed = path.replace(/^\/+/, "");
+    const url = new URL(`${this.baseUrl}/${trimmed}`);
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        if (v === undefined || v === null) continue;
+        url.searchParams.set(k, String(v));
+      }
+    }
+    return url.toString();
+  }
+}
+
+async function parseBody<T>(raw: Response): Promise<T> {
+  const ct = raw.headers.get("content-type") ?? "";
+  if (!ct.includes("json")) return undefined as T;
+  const text = await raw.text();
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
+}
+
+interface ErrorPayload {
+  message?: string;
+  type?: string;
+  param?: string;
+}
+
+function errorPayload(body: unknown): ErrorPayload {
+  if (!body || typeof body !== "object") return {};
+  const e = (body as { error?: unknown }).error;
+  if (!e || typeof e !== "object") return {};
+  return e as ErrorPayload;
+}
+
+function buildError(response: ZazuResponse): ZazuError {
+  const payload = errorPayload(response.body);
+  const message = payload.message;
+  const opts = {
+    status: response.status,
+    requestId: response.requestId,
+    type: payload.type ?? null,
+    param: payload.param ?? null,
+    body: response.body,
+  };
+
+  switch (response.status) {
+    case 401:
+      return new ZazuAuthenticationError(message ?? "Authentication failed", opts);
+    case 403:
+      return new ZazuForbiddenError(message ?? "Forbidden", opts);
+    case 404:
+      return new ZazuNotFoundError(message ?? "Not found", opts);
+    case 422:
+      return new ZazuValidationError(message ?? "Validation failed", opts);
+    case 429: {
+      const retryAfter = Number(response.headers.get("retry-after"));
+      return new ZazuRateLimitError(message ?? "Rate limited", {
+        ...opts,
+        retryAfter: Number.isFinite(retryAfter) ? retryAfter : null,
+      });
+    }
+  }
+
+  if (response.status >= 500 && response.status < 600) {
+    return new ZazuServerError(message ?? `Server error (${response.status})`, opts);
+  }
+  return new ZazuErrorBase(message ?? `Unexpected status ${response.status}`, opts);
+}
+
+function readEnv(name: string): string | undefined {
+  // process.env on Node/Bun, Deno.env on Deno. Browsers don't have either —
+  // callers there must pass options explicitly.
+  if (typeof process !== "undefined" && process.env) return process.env[name];
+  return undefined;
+}

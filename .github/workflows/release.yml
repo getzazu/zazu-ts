@@ -1,0 +1,140 @@
+name: Release
+
+# Tag-driven release. Mirrors zazu-ruby:
+#   - Test gate runs on Bun + Node
+#   - Build job packs the npm tarball + checksums
+#   - publish-npm job pauses on the `release` GitHub environment
+#     for required-reviewer approval, then publishes via OIDC
+#     trusted publishing with sigstore provenance attestation
+#   - upload-release-assets attaches the .tgz + checksums to the
+#     GitHub release for cross-language SDK consumers
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test before release
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+      - run: bun run fetch:cassettes
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run lint
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      tarball: ${{ steps.pack.outputs.tarball }}
+      version: ${{ steps.pack.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Verify tag matches package version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ github.event.release.tag_name }}"
+          TAG_VERSION="${TAG_VERSION#v}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package version ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
+
+      - name: Pack tarball
+        id: pack
+        run: |
+          npm pack --pack-destination .
+          TARBALL=$(ls getzazu-sdk-*.tgz)
+          echo "tarball=$TARBALL" >> "$GITHUB_OUTPUT"
+          TAG_VERSION="${{ github.event.release.tag_name }}"
+          echo "version=${TAG_VERSION#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Generate checksums
+        run: |
+          TARBALL=$(ls getzazu-sdk-*.tgz)
+          sha256sum "$TARBALL" > "$TARBALL.sha256"
+          sha512sum "$TARBALL" > "$TARBALL.sha512"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: |
+            getzazu-sdk-*.tgz
+            getzazu-sdk-*.tgz.sha256
+            getzazu-sdk-*.tgz.sha512
+          if-no-files-found: error
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+
+      - name: Verify checksums
+        run: |
+          sha256sum -c getzazu-sdk-*.tgz.sha256
+          sha512sum -c getzazu-sdk-*.tgz.sha512
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Publish to npm with provenance attestation
+        run: |
+          TARBALL=$(ls getzazu-sdk-*.tgz)
+          npm publish "$TARBALL" --provenance --access public
+
+  upload-release-assets:
+    needs: [build, publish-npm]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+
+      - name: Upload assets to GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TARBALL="${{ needs.build.outputs.tarball }}"
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "$TARBALL" \
+            "$TARBALL.sha256" \
+            "$TARBALL.sha512" \
+            --repo "${{ github.repository }}"

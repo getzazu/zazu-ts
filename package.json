@@ -1,0 +1,71 @@
+{
+  "name": "@getzazu/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for the Zazu API. Runtime-agnostic (Node, Bun, Deno, browsers, Cloudflare Workers).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "rm -rf dist && bun run build:esm && bun run build:cjs && bun run build:dts",
+    "build:esm": "bun build src/index.ts --outfile dist/index.js --target browser --format esm",
+    "build:cjs": "bun build src/index.ts --outfile dist/index.cjs --target node --format cjs",
+    "build:dts": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration --outDir dist",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "fetch:cassettes": "bun scripts/fetch-cassettes.ts",
+    "release": "bun scripts/release.ts"
+  },
+  "keywords": [
+    "zazu",
+    "sdk",
+    "api",
+    "payments",
+    "morocco",
+    "fintech"
+  ],
+  "author": "Zazu <hello@zazu.ma>",
+  "license": "MIT",
+  "homepage": "https://github.com/getzazu/zazu-ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/getzazu/zazu-ts.git"
+  },
+  "bugs": {
+    "url": "https://github.com/getzazu/zazu-ts/issues"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/js-yaml": "^4.0.9",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "js-yaml": "^4.1.0",
+    "msw": "^2.6.0",
+    "prettier": "^3.3.0",
+    "tar": "^7.4.3",
+    "typescript": "^5.6.0"
+  }
+}
