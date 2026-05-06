@@ -2,7 +2,7 @@
 description: "Use when a PR needs full review — fixes CI failures first, then addresses unresolved review comments. Run failures first because comment fixes trigger new CI runs that obscure the original failures."
 model: claude-opus-4-7
 argument-hint: "PR number (e.g., 1690 or #1690)"
-allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr comment:*), Bash(gh api:*), Bash(gh run view:*), Bash(git log:*), Bash(git blame:*), Bash(git diff:*), Bash(git push:*), Bash(git commit:*), Bash(git add:*), Bash(bun:*), Bash(npm:*), Bash(npx:*), Read, Write, Edit, Glob, Grep, Agent
+allowed-tools: Bash(gh pr list:*), Bash(gh pr view:*), Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr comment:*), Bash(gh api:*), Bash(gh run view:*), Bash(git log:*), Bash(git blame:*), Bash(git diff:*), Bash(git push:*), Bash(git commit:*), Bash(git add:*), Bash(bun:*), Read, Write, Edit, Glob, Grep, Agent
 ---
 
 # Review GitHub PR (full pass): $ARGUMENTS
@@ -45,9 +45,35 @@ Repeat until all checks are green.
 
 ## Phase B: Unresolved review comments
 
+The REST endpoint `pulls/<N>/comments` returns every review comment with no resolution state. We want **only unresolved threads** — use GraphQL's `reviewThreads.isResolved`:
+
 ```bash
-gh api repos/{owner}/{repo}/pulls/<PR>/comments --jq '.[] | {id, user: .user.login, path, line, body: .body[:300]}'
+gh api graphql -f query='
+query($owner: String!, $repo: String!, $number: Int!) {
+  repository(owner: $owner, name: $repo) {
+    pullRequest(number: $number) {
+      reviewThreads(first: 100) {
+        nodes {
+          id
+          isResolved
+          path
+          line
+          comments(first: 1) {
+            nodes {
+              databaseId
+              author { login }
+              body
+            }
+          }
+        }
+      }
+    }
+  }
+}' -F owner=<owner> -F repo=<repo> -F number=<PR> \
+  --jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | map({thread_id: .id, comment_id: .comments.nodes[0].databaseId, path, line, author: .comments.nodes[0].author.login, body: (.comments.nodes[0].body | .[:300])})'
 ```
+
+The `thread_id` (GraphQL node id, looks like `PRRT_…`) is what you need to mark a thread resolved later. The `comment_id` (numeric `databaseId`) is what the REST `pulls/comments/<id>/replies` endpoint expects when posting a reply.
 
 For each unresolved thread:
 
@@ -61,8 +87,19 @@ For each unresolved thread:
 5. **Reply on the comment thread** (not as a new top-level comment):
 
    ```bash
-   gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment-id>/replies \
+   gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment_id>/replies \
      -f body='<reply>'
+   ```
+
+   Optionally mark the thread resolved when the work is committed:
+
+   ```bash
+   gh api graphql -f query='
+   mutation($id: ID!) {
+     resolveReviewThread(input: { threadId: $id }) {
+       thread { isResolved }
+     }
+   }' -F id=<thread_id>
    ```
 
 6. **Verify** after each batch of fixes: `bun run check:all`
