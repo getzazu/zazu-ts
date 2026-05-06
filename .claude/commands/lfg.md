@@ -124,6 +124,8 @@ Re-read the original requirements: would the requester consider this fully resol
 
 ## Phase 7: Commit and PR
 
+**Backticks in PR bodies pass through `<<'EOF'` heredocs verbatim — do NOT escape them with `` \` ``.** See the "PR descriptions" section in `CLAUDE.md`.
+
 ```bash
 git add <specific_files>
 git commit -m "$(cat <<'EOF'
@@ -148,7 +150,7 @@ git push -u origin $(git branch --show-current)
 
 gh pr create --title "feat(scope): brief description" --body "$(cat <<'EOF'
 ## Summary
-- Key change 1
+- Key change 1 — uses `Page<T>` from the SDK
 - Key change 2
 
 Closes #<issue_number>
@@ -159,6 +161,8 @@ Closes #<issue_number>
 EOF
 )"
 ```
+
+If you typed `` \` `` anywhere in the body, delete the backslash. The single-quoted EOF delimiter is doing all the shell-escaping work.
 
 ## Verification checklist
 
