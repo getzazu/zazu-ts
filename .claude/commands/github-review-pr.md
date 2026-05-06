@@ -60,10 +60,10 @@ For each unresolved thread:
    - Match existing style
 5. **Reply on the comment thread** (not as a new top-level comment):
 
-```bash
-gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment-id>/replies \
-  -f body='<reply>'
-```
+   ```bash
+   gh api repos/{owner}/{repo}/pulls/<PR>/comments/<comment-id>/replies \
+     -f body='<reply>'
+   ```
 
 6. **Verify** after each batch of fixes: `bun run check:all`
 7. **Commit + push** in batches grouped by topic (one commit per CodeRabbit theme is fine).
