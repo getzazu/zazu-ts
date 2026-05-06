@@ -2,7 +2,7 @@
 
 import type { Page } from "../page.js";
 import type { ZazuResponse } from "../response.js";
-import { ResourceBase, type ListParams } from "./base.js";
+import { type ListParams, ResourceBase } from "./base.js";
 
 export class PaymentLinks extends ResourceBase {
   list(params: ListParams = {}): Promise<Page<unknown>> {

@@ -6,7 +6,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import yaml from "js-yaml";
-import { http, HttpResponse } from "msw";
+import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
 
 // VCR records non-UTF-8 response bodies as `!binary |- <base64>`.
@@ -15,8 +15,7 @@ import { setupServer } from "msw/node";
 // `tag:yaml.org,2002:binary`. Register both forms so either works,
 // and decode the base64 to a UTF-8 string — Zazu only ever returns
 // JSON over the wire.
-const decode = (data: string) =>
-  Buffer.from(data.replace(/\s+/g, ""), "base64").toString("utf8");
+const decode = (data: string) => Buffer.from(data.replace(/\s+/g, ""), "base64").toString("utf8");
 
 const binaryCanonical = new yaml.Type("tag:yaml.org,2002:binary", {
   kind: "scalar",
@@ -62,7 +61,8 @@ export function cassetteHandler(interaction: CassetteInteraction) {
   const verb = method.toLowerCase() as "get" | "post" | "patch" | "delete" | "put";
   const responseHeaders: Record<string, string> = {};
   for (const [k, v] of Object.entries(interaction.response.headers)) {
-    if (Array.isArray(v) && v.length > 0) responseHeaders[k] = v[0]!;
+    const first = Array.isArray(v) ? v[0] : undefined;
+    if (typeof first === "string") responseHeaders[k] = first;
   }
 
   // Strip the query string from the cassette URI for msw's URL pattern.
@@ -90,7 +90,9 @@ function sortedParams(params: URLSearchParams): string {
   return entries.map(([k, v]) => `${k}=${v}`).join("&");
 }
 
-export async function startServer(cassetteNames: string[]): Promise<ReturnType<typeof setupServer>> {
+export async function startServer(
+  cassetteNames: string[],
+): Promise<ReturnType<typeof setupServer>> {
   const handlers = [];
   for (const name of cassetteNames) {
     const interactions = await loadCassette(name);

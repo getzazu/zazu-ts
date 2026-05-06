@@ -53,9 +53,7 @@ describe("Invoices (cassette replay)", () => {
   });
 
   test("#delete deletes an invoice", async () => {
-    const response = await zazu.invoices.delete(
-      FIXTURE_IDS.ZAZU_FIXTURE_DELETABLE_INVOICE_ID,
-    );
+    const response = await zazu.invoices.delete(FIXTURE_IDS.ZAZU_FIXTURE_DELETABLE_INVOICE_ID);
     expect(response.status).toBe(204);
   });
 

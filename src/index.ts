@@ -1,23 +1,20 @@
 // Public surface. Mirror of lib/zazu.rb.
 
-export { Zazu, type ZazuClientOptions, type RequestOptions } from "./client.js";
-export { Page, MAX_PER_PAGE, type PageBody, type PageFetcher } from "./page.js";
-export { ZazuResponse } from "./response.js";
+export { type RequestOptions, Zazu, type ZazuClientOptions } from "./client.js";
 export {
-  ZazuError,
+  ZazuArgumentError,
+  ZazuAuthenticationError,
   ZazuConfigurationError,
   ZazuConnectionError,
-  ZazuAuthenticationError,
+  ZazuError,
+  type ZazuErrorOptions,
   ZazuForbiddenError,
   ZazuNotFoundError,
-  ZazuValidationError,
   ZazuRateLimitError,
   ZazuServerError,
-  ZazuArgumentError,
-  type ZazuErrorOptions,
+  ZazuValidationError,
 } from "./errors.js";
-export { VERSION } from "./version.js";
-
+export { MAX_PER_PAGE, Page, type PageBody, type PageFetcher } from "./page.js";
 // Resource classes are exported for users who want to extend or
 // reference them directly.
 export { Accounts } from "./resources/accounts.js";
@@ -26,3 +23,5 @@ export { Entity } from "./resources/entity.js";
 export { Invoices } from "./resources/invoices.js";
 export { PaymentLinks } from "./resources/payment_links.js";
 export { WebhookEndpoints } from "./resources/webhook_endpoints.js";
+export { ZazuResponse } from "./response.js";
+export { VERSION } from "./version.js";

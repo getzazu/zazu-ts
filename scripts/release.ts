@@ -29,10 +29,18 @@ const C = {
   header: (s: string) => `\n\x1b[1;36m${s}\x1b[0m\n${"─".repeat(s.length)}`,
 };
 
-function info(msg: string) { console.log(C.blue(msg)); }
-function success(msg: string) { console.log(C.green(msg)); }
-function skip(msg: string) { console.log(C.yellow(msg)); }
-function header(msg: string) { console.log(C.header(msg)); }
+function info(msg: string) {
+  console.log(C.blue(msg));
+}
+function success(msg: string) {
+  console.log(C.green(msg));
+}
+function skip(msg: string) {
+  console.log(C.yellow(msg));
+}
+function header(msg: string) {
+  console.log(C.header(msg));
+}
 
 function sh(cmd: string, args: string[]): string {
   const r = spawnSync(cmd, args, { stdio: ["inherit", "pipe", "inherit"], encoding: "utf8" });
@@ -53,7 +61,9 @@ let requested = args[0];
 const force = args.includes("--force") || args.includes("force");
 
 if (!requested) {
-  console.error(C.red("Usage: bun scripts/release.ts X.Y.Z [--force]   or   bun scripts/release.ts pre"));
+  console.error(
+    C.red("Usage: bun scripts/release.ts X.Y.Z [--force]   or   bun scripts/release.ts pre"),
+  );
   process.exit(1);
 }
 

@@ -42,10 +42,7 @@ export class ZazuValidationError extends ZazuError {}
 export class ZazuRateLimitError extends ZazuError {
   readonly retryAfter: number | null;
 
-  constructor(
-    message: string,
-    options: ZazuErrorOptions & { retryAfter?: number | null } = {},
-  ) {
+  constructor(message: string, options: ZazuErrorOptions & { retryAfter?: number | null } = {}) {
     super(message, options);
     this.retryAfter = options.retryAfter ?? null;
   }

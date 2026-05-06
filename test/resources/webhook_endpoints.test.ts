@@ -48,10 +48,10 @@ describe("WebhookEndpoints (cassette replay)", () => {
   });
 
   test("#update updates a webhook endpoint", async () => {
-    const response = await zazu.webhookEndpoints.update(
-      FIXTURE_IDS.ZAZU_FIXTURE_WEBHOOK_ID,
-      { description: "Updated description", events: ["payment_link.paid"] },
-    );
+    const response = await zazu.webhookEndpoints.update(FIXTURE_IDS.ZAZU_FIXTURE_WEBHOOK_ID, {
+      description: "Updated description",
+      events: ["payment_link.paid"],
+    });
     expect(response.success).toBe(true);
   });
 
