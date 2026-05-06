@@ -26,8 +26,11 @@
     "build:dts": "tsc -p tsconfig.build.json --emitDeclarationOnly --declaration --outDir dist",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "lint": "eslint .",
-    "format": "prettier --write .",
+    "lint": "biome check --error-on-warnings .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "check:all": "bun run typecheck && bun run lint && bun test",
     "fetch:cassettes": "bun scripts/fetch-cassettes.ts",
     "release": "bun scripts/release.ts"
   },
@@ -58,14 +61,11 @@
     "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.4.14",
     "@types/bun": "latest",
     "@types/js-yaml": "^4.0.9",
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
     "js-yaml": "^4.1.0",
     "msw": "^2.6.0",
-    "prettier": "^3.3.0",
     "tar": "^7.4.3",
     "typescript": "^5.6.0"
   }

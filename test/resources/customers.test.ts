@@ -59,9 +59,7 @@ describe("Customers (cassette replay)", () => {
   });
 
   test("#delete deletes a customer", async () => {
-    const response = await zazu.customers.delete(
-      FIXTURE_IDS.ZAZU_FIXTURE_DELETABLE_CUSTOMER_ID,
-    );
+    const response = await zazu.customers.delete(FIXTURE_IDS.ZAZU_FIXTURE_DELETABLE_CUSTOMER_ID);
     expect(response.status).toBe(204);
   });
 });

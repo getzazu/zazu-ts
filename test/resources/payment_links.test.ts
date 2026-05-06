@@ -29,9 +29,7 @@ describe("PaymentLinks (cassette replay)", () => {
   });
 
   test("#get returns a single payment link", async () => {
-    const response = await zazu.paymentLinks.get(
-      FIXTURE_IDS.ZAZU_FIXTURE_PAYMENT_LINK_ID,
-    );
+    const response = await zazu.paymentLinks.get(FIXTURE_IDS.ZAZU_FIXTURE_PAYMENT_LINK_ID);
     expect(typeof (response.body as { id: unknown }).id).toBe("string");
   });
 

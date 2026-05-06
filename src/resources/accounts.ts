@@ -2,7 +2,7 @@
 
 import type { Page } from "../page.js";
 import type { ZazuResponse } from "../response.js";
-import { ResourceBase, type ListParams } from "./base.js";
+import { type ListParams, ResourceBase } from "./base.js";
 
 export interface AccountListParams extends ListParams {
   status?: string;
@@ -25,10 +25,7 @@ export class Accounts extends ResourceBase {
     return this.httpGet(this.encodePath("api/accounts", id));
   }
 
-  listTransactions(
-    accountId: string,
-    params: TransactionListParams = {},
-  ): Promise<Page<unknown>> {
+  listTransactions(accountId: string, params: TransactionListParams = {}): Promise<Page<unknown>> {
     const { limit, cursor, posted_after, posted_before, ...rest } = params;
     return this.listPage(
       this.encodePath("api/accounts", accountId, "transactions"),
@@ -42,9 +39,7 @@ export class Accounts extends ResourceBase {
   }
 
   getTransaction(accountId: string, transactionId: string): Promise<ZazuResponse> {
-    return this.httpGet(
-      this.encodePath("api/accounts", accountId, "transactions", transactionId),
-    );
+    return this.httpGet(this.encodePath("api/accounts", accountId, "transactions", transactionId));
   }
 }
 

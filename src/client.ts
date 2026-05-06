@@ -13,13 +13,13 @@ import {
   ZazuServerError,
   ZazuValidationError,
 } from "./errors.js";
-import { ZazuResponse } from "./response.js";
 import { Accounts } from "./resources/accounts.js";
 import { Customers } from "./resources/customers.js";
 import { Entity } from "./resources/entity.js";
 import { Invoices } from "./resources/invoices.js";
 import { PaymentLinks } from "./resources/payment_links.js";
 import { WebhookEndpoints } from "./resources/webhook_endpoints.js";
+import { ZazuResponse } from "./response.js";
 import { VERSION } from "./version.js";
 
 export interface ZazuClientOptions {
@@ -57,9 +57,7 @@ export class Zazu {
   constructor(options: ZazuClientOptions = {}) {
     const apiKey = options.apiKey ?? readEnv("ZAZU_API_KEY");
     if (!apiKey) {
-      throw new ZazuConfigurationError(
-        "Missing apiKey. Pass apiKey or set ZAZU_API_KEY.",
-      );
+      throw new ZazuConfigurationError("Missing apiKey. Pass apiKey or set ZAZU_API_KEY.");
     }
     this.apiKey = apiKey;
     this.baseUrl = (options.baseUrl ?? readEnv("ZAZU_BASE_URL") ?? DEFAULT_BASE_URL).replace(

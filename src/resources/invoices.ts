@@ -2,7 +2,7 @@
 
 import type { Page } from "../page.js";
 import type { ZazuResponse } from "../response.js";
-import { ResourceBase, type ListParams } from "./base.js";
+import { type ListParams, ResourceBase } from "./base.js";
 
 export interface InvoiceListParams extends ListParams {
   status?: string;
@@ -50,10 +50,7 @@ export class Invoices extends ResourceBase {
     return this.httpPost(this.encodePath("api/invoices", id, "credit_note"), attributes);
   }
 
-  createPaymentLink(
-    id: string,
-    attributes: Record<string, unknown> = {},
-  ): Promise<ZazuResponse> {
+  createPaymentLink(id: string, attributes: Record<string, unknown> = {}): Promise<ZazuResponse> {
     return this.httpPost(this.encodePath("api/invoices", id, "payment_link"), attributes);
   }
 }

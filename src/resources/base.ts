@@ -19,10 +19,7 @@ export abstract class ResourceBase {
     this.client = client;
   }
 
-  protected httpGet<T>(
-    path: string,
-    params?: Record<string, unknown>,
-  ): Promise<ZazuResponse<T>> {
+  protected httpGet<T>(path: string, params?: Record<string, unknown>): Promise<ZazuResponse<T>> {
     return this.client.request<T>("GET", path, { params });
   }
 
@@ -77,8 +74,9 @@ export abstract class ResourceBase {
       if (str.length === 0) {
         throw new ZazuArgumentError("path segment cannot be blank");
       }
-      return str.replace(/[^A-Za-z0-9._~-]/g, (c) =>
-        `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
+      return str.replace(
+        /[^A-Za-z0-9._~-]/g,
+        (c) => `%${c.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`,
       );
     });
     return [base, ...encoded].join("/");
