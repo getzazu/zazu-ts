@@ -18,6 +18,7 @@ export { MAX_PER_PAGE, Page, type PageBody, type PageFetcher } from "./page.js";
 // Resource classes are exported for users who want to extend or
 // reference them directly.
 export { Accounts } from "./resources/accounts.js";
+export { CheckoutSessions } from "./resources/checkout_sessions.js";
 export { Customers } from "./resources/customers.js";
 export { Entity } from "./resources/entity.js";
 export { Invoices } from "./resources/invoices.js";
