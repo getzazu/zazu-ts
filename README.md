@@ -58,6 +58,9 @@ zazu.webhookEndpoints.test(id);
 zazu.webhookEndpoints.regenerateSecret(id);
 zazu.webhookEndpoints.enable(id);
 zazu.webhookEndpoints.disable(id);
+
+zazu.checkoutSessions.create({ account_id, amount, success_url, cancel_url });
+zazu.checkoutSessions.get(id);
 ```
 
 ## Errors

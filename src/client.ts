@@ -14,6 +14,7 @@ import {
   ZazuValidationError,
 } from "./errors.js";
 import { Accounts } from "./resources/accounts.js";
+import { CheckoutSessions } from "./resources/checkout_sessions.js";
 import { Customers } from "./resources/customers.js";
 import { Entity } from "./resources/entity.js";
 import { Invoices } from "./resources/invoices.js";
@@ -48,6 +49,7 @@ export class Zazu {
   readonly #fetch: typeof fetch;
 
   readonly accounts: Accounts;
+  readonly checkoutSessions: CheckoutSessions;
   readonly customers: Customers;
   readonly entity: Entity;
   readonly invoices: Invoices;
@@ -70,6 +72,7 @@ export class Zazu {
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
     this.accounts = new Accounts(this);
+    this.checkoutSessions = new CheckoutSessions(this);
     this.customers = new Customers(this);
     this.entity = new Entity(this);
     this.invoices = new Invoices(this);
