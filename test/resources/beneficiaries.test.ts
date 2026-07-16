@@ -8,7 +8,7 @@ import { FIXTURE_IDS, STAGING_BASE_URL, TEST_API_KEY } from "../fixture-ids.js";
 const CASSETTES = ["beneficiaries/list", "beneficiaries/get"];
 
 describe("Beneficiaries (cassette replay)", () => {
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startServer>> | undefined;
   let zazu: Zazu;
 
   beforeAll(async () => {
@@ -16,7 +16,7 @@ describe("Beneficiaries (cassette replay)", () => {
     zazu = new Zazu({ apiKey: TEST_API_KEY, baseUrl: STAGING_BASE_URL });
   });
 
-  afterAll(() => server.close());
+  afterAll(() => server?.close());
 
   test("#list returns a Page of beneficiaries with their bank accounts", async () => {
     const page = await zazu.beneficiaries.list();

@@ -8,7 +8,7 @@ import { FIXTURE_IDS, STAGING_BASE_URL, TEST_API_KEY } from "../fixture-ids.js";
 const CASSETTES = ["transfer_drafts/create", "transfer_drafts/get"];
 
 describe("TransferDrafts (cassette replay)", () => {
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startServer>> | undefined;
   let zazu: Zazu;
 
   beforeAll(async () => {
@@ -16,7 +16,7 @@ describe("TransferDrafts (cassette replay)", () => {
     zazu = new Zazu({ apiKey: TEST_API_KEY, baseUrl: STAGING_BASE_URL });
   });
 
-  afterAll(() => server.close());
+  afterAll(() => server?.close());
 
   test("#create creates a draft awaiting in-app approval", async () => {
     const response = await zazu.transferDrafts.create({

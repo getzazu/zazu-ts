@@ -6,7 +6,7 @@ import { startServer } from "../cassette-replay.js";
 import { STAGING_BASE_URL, TEST_API_KEY } from "../fixture-ids.js";
 
 describe("Entity (cassette replay)", () => {
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startServer>> | undefined;
   let zazu: Zazu;
 
   beforeAll(async () => {
@@ -14,7 +14,7 @@ describe("Entity (cassette replay)", () => {
     zazu = new Zazu({ apiKey: TEST_API_KEY, baseUrl: STAGING_BASE_URL });
   });
 
-  afterAll(() => server.close());
+  afterAll(() => server?.close());
 
   test("#get returns the entity", async () => {
     const response = await zazu.entity.get();

@@ -8,7 +8,7 @@ import { FIXTURE_IDS, STAGING_BASE_URL, TEST_API_KEY } from "../fixture-ids.js";
 const CASSETTES = ["checkout_sessions/create", "checkout_sessions/get"];
 
 describe("CheckoutSessions (cassette replay)", () => {
-  let server: Awaited<ReturnType<typeof startServer>>;
+  let server: Awaited<ReturnType<typeof startServer>> | undefined;
   let zazu: Zazu;
 
   beforeAll(async () => {
@@ -16,7 +16,7 @@ describe("CheckoutSessions (cassette replay)", () => {
     zazu = new Zazu({ apiKey: TEST_API_KEY, baseUrl: STAGING_BASE_URL });
   });
 
-  afterAll(() => server.close());
+  afterAll(() => server?.close());
 
   test("#create creates a checkout session", async () => {
     const response = await zazu.checkoutSessions.create({
