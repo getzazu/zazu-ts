@@ -57,18 +57,24 @@ await extractTar({ file: tarPath, cwd: dirname(DEST), strip: 0 });
 console.log(`Cassettes extracted to ${DEST}`);
 
 async function latestTag(): Promise<string> {
-  const ghHeaders: Record<string, string> = { Accept: "application/vnd.github+json" };
-  if (process.env.GH_TOKEN) ghHeaders.Authorization = `Bearer ${process.env.GH_TOKEN}`;
-
-  // /releases/latest skips prereleases and 404s on private repos for
-  // unauthenticated callers — fall back to /releases (most-recent first)
-  // which works in both cases.
-  const r = await fetchWithRetry(`https://api.github.com/repos/${REPO}/releases?per_page=1`, {
-    headers: ghHeaders,
-  });
-  if (!r.ok) throw new Error(`Failed to query latest release: ${r.status} ${r.statusText}`);
-  const arr = (await r.json()) as Array<{ tag_name: string; draft: boolean }>;
-  const release = arr.find((rel) => !rel.draft);
-  if (!release) throw new Error(`No published releases found for ${REPO}`);
-  return release.tag_name;
+  // Resolve over the git transport rather than api.github.com — the REST
+  // API's 503 storms have failed release runs, while the git endpoints
+  // ride separate infrastructure.
+  const proc = Bun.spawn([
+    "git",
+    "ls-remote",
+    "--tags",
+    "--refs",
+    `https://github.com/${REPO}.git`,
+    "v*",
+  ]);
+  const out = await new Response(proc.stdout).text();
+  const tags = out
+    .split("\n")
+    .map((line) => line.split("/").pop() ?? "")
+    .filter((tag) => /^v\d/.test(tag))
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const latest = tags.at(-1);
+  if (!latest) throw new Error(`Could not resolve latest tag for ${REPO}`);
+  return latest;
 }
