@@ -14,11 +14,13 @@ import {
   ZazuValidationError,
 } from "./errors.js";
 import { Accounts } from "./resources/accounts.js";
+import { Beneficiaries } from "./resources/beneficiaries.js";
 import { CheckoutSessions } from "./resources/checkout_sessions.js";
 import { Customers } from "./resources/customers.js";
 import { Entity } from "./resources/entity.js";
 import { Invoices } from "./resources/invoices.js";
 import { PaymentLinks } from "./resources/payment_links.js";
+import { TransferDrafts } from "./resources/transfer_drafts.js";
 import { WebhookEndpoints } from "./resources/webhook_endpoints.js";
 import { ZazuResponse } from "./response.js";
 import { VERSION } from "./version.js";
@@ -49,11 +51,13 @@ export class Zazu {
   readonly #fetch: typeof fetch;
 
   readonly accounts: Accounts;
+  readonly beneficiaries: Beneficiaries;
   readonly checkoutSessions: CheckoutSessions;
   readonly customers: Customers;
   readonly entity: Entity;
   readonly invoices: Invoices;
   readonly paymentLinks: PaymentLinks;
+  readonly transferDrafts: TransferDrafts;
   readonly webhookEndpoints: WebhookEndpoints;
 
   constructor(options: ZazuClientOptions = {}) {
@@ -72,11 +76,13 @@ export class Zazu {
     this.#fetch = options.fetch ?? globalThis.fetch.bind(globalThis);
 
     this.accounts = new Accounts(this);
+    this.beneficiaries = new Beneficiaries(this);
     this.checkoutSessions = new CheckoutSessions(this);
     this.customers = new Customers(this);
     this.entity = new Entity(this);
     this.invoices = new Invoices(this);
     this.paymentLinks = new PaymentLinks(this);
+    this.transferDrafts = new TransferDrafts(this);
     this.webhookEndpoints = new WebhookEndpoints(this);
   }
 
