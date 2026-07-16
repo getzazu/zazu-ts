@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [0.2.1]
+
+Version alignment: the whole SDK family now releases in lockstep with zazu-ruby. Includes the transferDrafts + beneficiaries resources from 0.2.x.
+
 ### Added
 
 - `checkoutSessions` resource — `create` and `get` mirror `Zazu::Resources::CheckoutSessions` in zazu-ruby v0.2.0
