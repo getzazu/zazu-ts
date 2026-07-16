@@ -25,7 +25,23 @@ console.log(`Fetching cassettes from ${tarUrl}`);
 const headers: Record<string, string> = { Accept: "application/octet-stream" };
 if (process.env.GH_TOKEN) headers.Authorization = `Bearer ${process.env.GH_TOKEN}`;
 
-const res = await fetch(tarUrl, { headers });
+// GitHub's API weathers occasional 503 storms — retry rather than fail a CI run.
+async function fetchWithRetry(url: string, init: RequestInit, attempts = 8): Promise<Response> {
+  let last: Response | undefined;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      last = await fetch(url, init);
+      if (last.ok) return last;
+    } catch {
+      // network error — fall through to retry
+    }
+    await new Promise((r) => setTimeout(r, 10_000));
+  }
+  if (last) return last;
+  throw new Error(`fetch failed after ${attempts} attempts: ${url}`);
+}
+
+const res = await fetchWithRetry(tarUrl, { headers });
 if (!res.ok) {
   console.error(`Failed: ${res.status} ${res.statusText} (set GH_TOKEN if zazu-ruby is private)`);
   process.exit(1);
@@ -47,7 +63,7 @@ async function latestTag(): Promise<string> {
   // /releases/latest skips prereleases and 404s on private repos for
   // unauthenticated callers — fall back to /releases (most-recent first)
   // which works in both cases.
-  const r = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=1`, {
+  const r = await fetchWithRetry(`https://api.github.com/repos/${REPO}/releases?per_page=1`, {
     headers: ghHeaders,
   });
   if (!r.ok) throw new Error(`Failed to query latest release: ${r.status} ${r.statusText}`);
